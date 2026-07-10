@@ -351,6 +351,51 @@ function StepperRow({ label, value, min = 0, onDecrement, onIncrement }: Stepper
   );
 }
 
+type PlaceAutocompletePanelProps = {
+  loading: boolean;
+  predictions: PlacePrediction[];
+  onSelect: (place: PlacePrediction) => void;
+};
+
+function PlaceAutocompletePanel({ loading, predictions, onSelect }: PlaceAutocompletePanelProps) {
+  const { colors, scheme } = useTheme();
+
+  return (
+    <View style={[styles.placePanel, { backgroundColor: colors.cardBg, borderColor: colors.divider }, Elevation[scheme][4]]}>
+      {loading ? (
+        <Text style={[styles.placeMetaText, { color: colors.textCaption }]}>검색 중</Text>
+      ) : (
+        predictions.map((place, placeIndex) => (
+          <Pressable
+            key={place.place_id}
+            onPress={() => onSelect(place)}
+            style={[
+              styles.placeOption,
+              placeIndex < predictions.length - 1 && { borderBottomColor: colors.divider, borderBottomWidth: 1 },
+            ]}
+          >
+            {({ pressed }) => (
+              <>
+                <Text style={[styles.placeMainText, { color: colors.textTitle }]} numberOfLines={1}>
+                  {place.structured_formatting?.main_text ?? place.description}
+                </Text>
+                {place.structured_formatting?.secondary_text ? (
+                  <Text style={[styles.placeSubText, { color: colors.textCaption }]} numberOfLines={1}>
+                    {place.structured_formatting.secondary_text}
+                  </Text>
+                ) : null}
+                {pressed && (
+                  <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.pressOverlay }]} />
+                )}
+              </>
+            )}
+          </Pressable>
+        ))
+      )}
+    </View>
+  );
+}
+
 export function TripInfoBottomSheet({ visible, mode, initialValues, roomName, onSubmit, onClose }: Props) {
   const { colors, scheme } = useTheme();
   const insets = useSafeAreaInsets();
@@ -590,9 +635,11 @@ export function TripInfoBottomSheet({ visible, mode, initialValues, roomName, on
     !areSameAges(childAges, initialChildAges) ||
     budget !== normalizeBudget(initialValues?.budget);
   const validationMessage = (() => {
-    const originTrimmed = origin.trim();
-    if (originTrimmed === '') return '출발지를 입력해주세요.';
-    if (selectedOrigin.trim() !== originTrimmed) return '출발지를 검색 결과에서 선택해주세요.';
+    if (mode === 'create') {
+      const originTrimmed = origin.trim();
+      if (originTrimmed === '') return '출발지를 입력해주세요.';
+      if (selectedOrigin.trim() !== originTrimmed) return '출발지를 검색 결과에서 선택해주세요.';
+    }
 
     const emptyDestinationIndex = destinations.findIndex(value => value.destination.trim() === '');
     if (emptyDestinationIndex >= 0) return `여행지${emptyDestinationIndex + 1}을 입력해주세요.`;
@@ -827,38 +874,11 @@ export function TripInfoBottomSheet({ visible, mode, initialValues, roomName, on
                 </Pressable>
               </View>
               {focusedField?.kind === 'origin' && (placesLoading || placePredictions.length > 0) ? (
-                <View style={[styles.placePanel, { backgroundColor: colors.cardBg, borderColor: colors.divider }, Elevation[scheme][4]]}>
-                  {placesLoading ? (
-                    <Text style={[styles.placeMetaText, { color: colors.textCaption }]}>검색 중</Text>
-                  ) : (
-                    placePredictions.map((place, placeIndex) => (
-                      <Pressable
-                        key={place.place_id}
-                        onPress={() => handleSelectPlace(place)}
-                        style={[
-                          styles.placeOption,
-                          placeIndex < placePredictions.length - 1 && { borderBottomColor: colors.divider, borderBottomWidth: 1 },
-                        ]}
-                      >
-                        {({ pressed }) => (
-                          <>
-                            <Text style={[styles.placeMainText, { color: colors.textTitle }]} numberOfLines={1}>
-                              {place.structured_formatting?.main_text ?? place.description}
-                            </Text>
-                            {place.structured_formatting?.secondary_text ? (
-                              <Text style={[styles.placeSubText, { color: colors.textCaption }]} numberOfLines={1}>
-                                {place.structured_formatting.secondary_text}
-                              </Text>
-                            ) : null}
-                            {pressed && (
-                              <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.pressOverlay }]} />
-                            )}
-                          </>
-                        )}
-                      </Pressable>
-                    ))
-                  )}
-                </View>
+                <PlaceAutocompletePanel
+                  loading={placesLoading}
+                  predictions={placePredictions}
+                  onSelect={handleSelectPlace}
+                />
               ) : null}
             </View>
             <View style={styles.fieldGroup}>
@@ -909,38 +929,11 @@ export function TripInfoBottomSheet({ visible, mode, initialValues, roomName, on
                       </Pressable>
                     </View>
                     {focusedField?.kind === 'destination' && focusedField.index === index && (placesLoading || placePredictions.length > 0) ? (
-                      <View style={[styles.placePanel, { backgroundColor: colors.cardBg, borderColor: colors.divider }, Elevation[scheme][4]]}>
-                        {placesLoading ? (
-                          <Text style={[styles.placeMetaText, { color: colors.textCaption }]}>검색 중</Text>
-                        ) : (
-                          placePredictions.map((place, placeIndex) => (
-                            <Pressable
-                              key={place.place_id}
-                              onPress={() => handleSelectPlace(place)}
-                              style={[
-                                styles.placeOption,
-                                placeIndex < placePredictions.length - 1 && { borderBottomColor: colors.divider, borderBottomWidth: 1 },
-                              ]}
-                            >
-                              {({ pressed }) => (
-                                <>
-                                  <Text style={[styles.placeMainText, { color: colors.textTitle }]} numberOfLines={1}>
-                                    {place.structured_formatting?.main_text ?? place.description}
-                                  </Text>
-                                  {place.structured_formatting?.secondary_text ? (
-                                    <Text style={[styles.placeSubText, { color: colors.textCaption }]} numberOfLines={1}>
-                                      {place.structured_formatting.secondary_text}
-                                    </Text>
-                                  ) : null}
-                                  {pressed && (
-                                    <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.pressOverlay }]} />
-                                  )}
-                                </>
-                              )}
-                            </Pressable>
-                          ))
-                        )}
-                      </View>
+                      <PlaceAutocompletePanel
+                        loading={placesLoading}
+                        predictions={placePredictions}
+                        onSelect={handleSelectPlace}
+                      />
                     ) : null}
                     <Pressable
                       onPress={() => {
