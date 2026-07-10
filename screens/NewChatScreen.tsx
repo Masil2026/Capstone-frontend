@@ -154,6 +154,7 @@ export function NewChatScreen() {
 
   const handleTripSubmit = (info: TripInfo) => {
     createMutation.mutate({
+      origin: { city: info.origin },
       destinations: formatTripDestinations(info.destinations),
       budget: info.budget * 10000,
       adultCount: info.adults,

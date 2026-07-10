@@ -38,7 +38,12 @@ type TripDestinationRequest = {
   end_date: string;
 };
 
+type OriginRequest = {
+  city: string;
+};
+
 type CreateChatRoomRequest = {
+  origin: OriginRequest;
   destinations: TripDestinationRequest[];
   budget?: number;
   adultCount: number;
