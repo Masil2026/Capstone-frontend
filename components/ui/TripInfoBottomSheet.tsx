@@ -802,7 +802,7 @@ export function TripInfoBottomSheet({ visible, mode, initialValues, roomName, on
                 </Text>
               ) : null}
             </View>
-            <View style={styles.fieldGroup}>
+            <View style={[styles.fieldGroup, styles.originFieldGroup]}>
               <Text style={[styles.fieldLabel, { color: colors.textSub }]}>출발지</Text>
               <View style={[styles.inputBox, { backgroundColor: colors.cardBg, borderColor: colors.divider }, Elevation[scheme][4]]}>
                 <TextInput
@@ -1203,6 +1203,9 @@ const styles = StyleSheet.create({
   fieldGroup: {
     gap: 10,
     marginBottom: 27,
+  },
+  originFieldGroup: {
+    marginTop: 12,
   },
   budgetGroup: {
     gap: 10,
