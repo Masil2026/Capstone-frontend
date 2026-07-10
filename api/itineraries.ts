@@ -2,10 +2,15 @@ import { apiClient } from './client';
 
 const BASE = '/api/v1/itineraries';
 
+type OriginItem = {
+  city: string;
+};
+
 type Itinerary = {
   itineraryId: string;
   name: string;
   status: 'draft' | 'completed';
+  origin: OriginItem;
   destinations: TripDestination[];
   totalDays: number;
   startDate: string;
@@ -41,6 +46,7 @@ export type ItineraryDetail = {
   itineraryId: string;
   name: string;
   status: 'draft' | 'completed';
+  origin: OriginItem;
   destinations: TripDestination[];
   budget: number | null;
   adultCount: number;
@@ -60,6 +66,7 @@ export const getItineraries = (token: string) =>
   });
 
 type UpdateItineraryRequest = {
+  origin?: OriginItem;
   destinations?: TripDestination[];
   budget?: number | null;
   adultCount?: number;
@@ -69,6 +76,7 @@ type UpdateItineraryRequest = {
 
 type UpdateItineraryResponse = {
   itineraryId: string;
+  origin: OriginItem;
   destination: string;
   startDate: string;
   endDate: string;
@@ -138,6 +146,7 @@ type LogDayPlanItem = {
 
 type ItineraryLog = {
   logId: string;
+  origin: OriginItem | null;
   destination: string;
   budget: number | null;
   adultCount: number;

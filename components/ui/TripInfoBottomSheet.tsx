@@ -460,8 +460,9 @@ export function TripInfoBottomSheet({ visible, mode, initialValues, roomName, on
     if (!visible) return;
 
     const nextChildren = initialValues?.children ?? 0;
-    setOrigin('');
-    setSelectedOrigin('');
+    const nextOrigin = initialValues?.origin?.trim() ?? '';
+    setOrigin(nextOrigin);
+    setSelectedOrigin(nextOrigin);
     setDestinations(normalizeDestinations(initialValues?.destinations));
     setAdults(initialValues?.adults ?? 1);
     setChildren(nextChildren);
@@ -629,17 +630,16 @@ export function TripInfoBottomSheet({ visible, mode, initialValues, roomName, on
   const initialChildAges = normalizeAges(initialChildren, initialValues?.childAges);
   const hasChanges =
     mode === 'create' ||
+    origin.trim() !== (initialValues?.origin?.trim() ?? '') ||
     !areSameDestinations(destinations, initialDestinations) ||
     adults !== (initialValues?.adults ?? 1) ||
     children !== initialChildren ||
     !areSameAges(childAges, initialChildAges) ||
     budget !== normalizeBudget(initialValues?.budget);
   const validationMessage = (() => {
-    if (mode === 'create') {
-      const originTrimmed = origin.trim();
-      if (originTrimmed === '') return '출발지를 입력해주세요.';
-      if (selectedOrigin.trim() !== originTrimmed) return '출발지를 검색 결과에서 선택해주세요.';
-    }
+    const originTrimmed = origin.trim();
+    if (originTrimmed === '') return '출발지를 입력해주세요.';
+    if (selectedOrigin.trim() !== originTrimmed) return '출발지를 검색 결과에서 선택해주세요.';
 
     const emptyDestinationIndex = destinations.findIndex(value => value.destination.trim() === '');
     if (emptyDestinationIndex >= 0) return `여행지${emptyDestinationIndex + 1}을 입력해주세요.`;

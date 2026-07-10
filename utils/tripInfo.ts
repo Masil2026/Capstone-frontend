@@ -22,9 +22,10 @@ export function formatTripDestinationCities(destinations: { city: string }[]): s
 
 export function toTripInfoInitialValues(detail: Pick<
   ItineraryDetail,
-  'destinations' | 'budget' | 'adultCount' | 'childCount' | 'childAges'
+  'origin' | 'destinations' | 'budget' | 'adultCount' | 'childCount' | 'childAges'
 >): Partial<TripInfo> {
   return {
+    origin: detail.origin.city,
     destinations: detail.destinations.map((destination) => ({
       destination: destination.city,
       startDate: parseDateOnly(destination.start_date),

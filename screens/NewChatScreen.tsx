@@ -135,6 +135,7 @@ export function NewChatScreen() {
     mutationFn: ({ info, itineraryId }: { info: TripInfo; itineraryId: string }) =>
       authRequest((token) =>
         updateItinerary(token, itineraryId, {
+          origin: { city: info.origin },
           destinations: formatTripDestinations(info.destinations),
           budget: info.budget * 10000,
           adultCount: info.adults,
