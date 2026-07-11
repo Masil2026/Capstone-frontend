@@ -621,6 +621,9 @@ export function TripInfoBottomSheet({ visible, mode, initialValues, roomName, on
 
   const getDateLabel = (destination: TripDestinationDraft) => {
     if (destination.startDate && destination.endDate) {
+      if (isSameDay(destination.startDate, destination.endDate)) {
+        return `${formatDate(destination.startDate)} ~ ${formatDate(destination.endDate)} (당일치기)`;
+      }
       return `${formatDate(destination.startDate)} ~ ${formatDate(destination.endDate)}`;
     }
 
@@ -647,11 +650,13 @@ export function TripInfoBottomSheet({ visible, mode, initialValues, roomName, on
     }
 
     if (isSameDay(day, selectedDestination.startDate)) {
+      // 시작일과 같은 날짜를 다시 누르면 당일치기로 확정한다.
       setDestinations(prev => prev.map((destination, destinationIndex) => (
         destinationIndex === index
-          ? { ...destination, startDate: null, endDate: null }
+          ? { ...destination, endDate: day }
           : destination
       )));
+      setActiveCalendarIndex(null);
       return;
     }
 
