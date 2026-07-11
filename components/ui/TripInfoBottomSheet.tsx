@@ -54,6 +54,7 @@ type TripDestinationDraft = {
 };
 
 export type TripInfo = {
+  origin: string;
   destinations: TripDestination[];
   adults: number;
   children: number;
@@ -96,6 +97,8 @@ type PlacePrediction = {
     secondary_text?: string;
   };
 };
+
+type FocusTarget = { kind: 'origin' } | { kind: 'destination'; index: number };
 
 const GOOGLE_MAPS_API_KEY = (
   process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ??
@@ -348,12 +351,58 @@ function StepperRow({ label, value, min = 0, onDecrement, onIncrement }: Stepper
   );
 }
 
+type PlaceAutocompletePanelProps = {
+  loading: boolean;
+  predictions: PlacePrediction[];
+  onSelect: (place: PlacePrediction) => void;
+};
+
+function PlaceAutocompletePanel({ loading, predictions, onSelect }: PlaceAutocompletePanelProps) {
+  const { colors, scheme } = useTheme();
+
+  return (
+    <View style={[styles.placePanel, { backgroundColor: colors.cardBg, borderColor: colors.divider }, Elevation[scheme][4]]}>
+      {loading ? (
+        <Text style={[styles.placeMetaText, { color: colors.textCaption }]}>검색 중</Text>
+      ) : (
+        predictions.map((place, placeIndex) => (
+          <Pressable
+            key={place.place_id}
+            onPress={() => onSelect(place)}
+            style={[
+              styles.placeOption,
+              placeIndex < predictions.length - 1 && { borderBottomColor: colors.divider, borderBottomWidth: 1 },
+            ]}
+          >
+            {({ pressed }) => (
+              <>
+                <Text style={[styles.placeMainText, { color: colors.textTitle }]} numberOfLines={1}>
+                  {place.structured_formatting?.main_text ?? place.description}
+                </Text>
+                {place.structured_formatting?.secondary_text ? (
+                  <Text style={[styles.placeSubText, { color: colors.textCaption }]} numberOfLines={1}>
+                    {place.structured_formatting.secondary_text}
+                  </Text>
+                ) : null}
+                {pressed && (
+                  <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.pressOverlay }]} />
+                )}
+              </>
+            )}
+          </Pressable>
+        ))
+      )}
+    </View>
+  );
+}
+
 export function TripInfoBottomSheet({ visible, mode, initialValues, roomName, onSubmit, onClose }: Props) {
   const { colors, scheme } = useTheme();
   const insets = useSafeAreaInsets();
   const { height: screenHeight } = useWindowDimensions();
   const scrollViewRef = useRef<ScrollView>(null);
   const destinationInputRefs = useRef<(TextInput | null)[]>([]);
+  const originInputRef = useRef<TextInput | null>(null);
 
   const SNAP_HALF = useMemo(() => screenHeight * 0.60, [screenHeight]);
   const SNAP_FULL = useMemo(() => screenHeight * 0.92, [screenHeight]);
@@ -365,6 +414,8 @@ export function TripInfoBottomSheet({ visible, mode, initialValues, roomName, on
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
 
+  const [origin, setOrigin] = useState('');
+  const [selectedOrigin, setSelectedOrigin] = useState('');
   const [destinations, setDestinations] = useState<TripDestinationDraft[]>([createEmptyDestination()]);
   const [adults, setAdults] = useState(1);
   const [children, setChildren] = useState(0);
@@ -376,7 +427,7 @@ export function TripInfoBottomSheet({ visible, mode, initialValues, roomName, on
   const [calendarMonth, setCalendarMonth] = useState(new Date());
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [budgetFocused, setBudgetFocused] = useState(false);
-  const [focusedDestinationIndex, setFocusedDestinationIndex] = useState<number | null>(null);
+  const [focusedField, setFocusedField] = useState<FocusTarget | null>(null);
   const [placePredictions, setPlacePredictions] = useState<PlacePrediction[]>([]);
   const [placesLoading, setPlacesLoading] = useState(false);
 
@@ -409,6 +460,9 @@ export function TripInfoBottomSheet({ visible, mode, initialValues, roomName, on
     if (!visible) return;
 
     const nextChildren = initialValues?.children ?? 0;
+    const nextOrigin = initialValues?.origin?.trim() ?? '';
+    setOrigin(nextOrigin);
+    setSelectedOrigin(nextOrigin);
     setDestinations(normalizeDestinations(initialValues?.destinations));
     setAdults(initialValues?.adults ?? 1);
     setChildren(nextChildren);
@@ -418,18 +472,20 @@ export function TripInfoBottomSheet({ visible, mode, initialValues, roomName, on
     setPeopleExpanded(false);
     setActiveAgeDropdown(null);
     setCalendarMonth(initialValues?.destinations?.[0]?.startDate ?? new Date());
-    setFocusedDestinationIndex(null);
+    setFocusedField(null);
     setPlacePredictions([]);
   }, [visible, initialValues]);
 
   useEffect(() => {
-    if (!visible || focusedDestinationIndex === null) {
+    if (!visible || !focusedField) {
       setPlacesLoading(false);
       setPlacePredictions([]);
       return;
     }
 
-    const query = destinations[focusedDestinationIndex]?.destination.trim() ?? '';
+    const query = focusedField.kind === 'origin'
+      ? origin.trim()
+      : destinations[focusedField.index]?.destination.trim() ?? '';
     if (!GOOGLE_MAPS_API_KEY || query.length < 2) {
       setPlacesLoading(false);
       setPlacePredictions([]);
@@ -467,7 +523,7 @@ export function TripInfoBottomSheet({ visible, mode, initialValues, roomName, on
       controller.abort();
       clearTimeout(timerId);
     };
-  }, [destinations, focusedDestinationIndex, visible]);
+  }, [destinations, origin, focusedField, visible]);
 
   const handleClose = useCallback(() => {
     onCloseRef.current();
@@ -574,12 +630,17 @@ export function TripInfoBottomSheet({ visible, mode, initialValues, roomName, on
   const initialChildAges = normalizeAges(initialChildren, initialValues?.childAges);
   const hasChanges =
     mode === 'create' ||
+    origin.trim() !== (initialValues?.origin?.trim() ?? '') ||
     !areSameDestinations(destinations, initialDestinations) ||
     adults !== (initialValues?.adults ?? 1) ||
     children !== initialChildren ||
     !areSameAges(childAges, initialChildAges) ||
     budget !== normalizeBudget(initialValues?.budget);
   const validationMessage = (() => {
+    const originTrimmed = origin.trim();
+    if (originTrimmed === '') return '출발지를 입력해주세요.';
+    if (selectedOrigin.trim() !== originTrimmed) return '출발지를 검색 결과에서 선택해주세요.';
+
     const emptyDestinationIndex = destinations.findIndex(value => value.destination.trim() === '');
     if (emptyDestinationIndex >= 0) return `여행지${emptyDestinationIndex + 1}을 입력해주세요.`;
 
@@ -684,6 +745,11 @@ export function TripInfoBottomSheet({ visible, mode, initialValues, roomName, on
     if (nextChildren === 0) setActiveAgeDropdown(null);
   };
 
+  const updateOrigin = (value: string) => {
+    setOrigin(value);
+    setSelectedOrigin('');
+  };
+
   const updateDestination = (index: number, value: string) => {
     setDestinations(prev => prev.map((destination, destinationIndex) => (
       destinationIndex === index
@@ -719,10 +785,10 @@ export function TripInfoBottomSheet({ visible, mode, initialValues, roomName, on
       if (current === index) return null;
       return current > index ? current - 1 : current;
     });
-    setFocusedDestinationIndex(current => {
-      if (current === null) return null;
-      if (current === index) return null;
-      return current > index ? current - 1 : current;
+    setFocusedField(current => {
+      if (!current || current.kind !== 'destination') return current;
+      if (current.index === index) return null;
+      return current.index > index ? { kind: 'destination', index: current.index - 1 } : current;
     });
     setPlacePredictions([]);
   };
@@ -731,6 +797,7 @@ export function TripInfoBottomSheet({ visible, mode, initialValues, roomName, on
     if (!isValid) return;
 
     onSubmit({
+      origin: selectedOrigin.trim(),
       destinations: completedDestinations.map(destination => ({
         destination: destination.destination,
         startDate: destination.startDate,
@@ -744,10 +811,13 @@ export function TripInfoBottomSheet({ visible, mode, initialValues, roomName, on
   };
 
   const handleSelectPlace = (place: PlacePrediction) => {
-    if (focusedDestinationIndex !== null) {
-      selectDestination(focusedDestinationIndex, place.description);
+    if (focusedField?.kind === 'origin') {
+      setOrigin(place.description);
+      setSelectedOrigin(place.description);
+    } else if (focusedField?.kind === 'destination') {
+      selectDestination(focusedField.index, place.description);
     }
-    setFocusedDestinationIndex(null);
+    setFocusedField(null);
     setPlacePredictions([]);
     Keyboard.dismiss();
   };
@@ -784,6 +854,38 @@ export function TripInfoBottomSheet({ visible, mode, initialValues, roomName, on
                 </Text>
               ) : null}
             </View>
+            <View style={[styles.fieldGroup, styles.originFieldGroup]}>
+              <Text style={[styles.fieldLabel, { color: colors.textSub }]}>출발지</Text>
+              <View style={[styles.inputBox, { backgroundColor: colors.cardBg, borderColor: colors.divider }, Elevation[scheme][4]]}>
+                <TextInput
+                  ref={originInputRef}
+                  value={origin}
+                  onChangeText={updateOrigin}
+                  onFocus={() => setFocusedField({ kind: 'origin' })}
+                  placeholder="출발지를 입력해주세요"
+                  placeholderTextColor={colors.textDisabled}
+                  style={[styles.textInput, { color: colors.textTitle }]}
+                />
+                <Pressable
+                  onPress={() => originInputRef.current?.focus()}
+                  style={styles.inputIconButton}
+                  hitSlop={8}
+                >
+                  <IcSearch
+                    width={20}
+                    height={20}
+                    color={origin ? colors.textTitle : colors.textCaption}
+                  />
+                </Pressable>
+              </View>
+              {focusedField?.kind === 'origin' && (placesLoading || placePredictions.length > 0) ? (
+                <PlaceAutocompletePanel
+                  loading={placesLoading}
+                  predictions={placePredictions}
+                  onSelect={handleSelectPlace}
+                />
+              ) : null}
+            </View>
             <View style={styles.fieldGroup}>
               <View style={styles.destinationList}>
                 {destinations.map((destination, index) => (
@@ -814,7 +916,7 @@ export function TripInfoBottomSheet({ visible, mode, initialValues, roomName, on
                         }}
                         value={destination.destination}
                         onChangeText={(value) => updateDestination(index, value)}
-                        onFocus={() => setFocusedDestinationIndex(index)}
+                        onFocus={() => setFocusedField({ kind: 'destination', index })}
                         placeholder={`여행지${index + 1}을 입력해주세요`}
                         placeholderTextColor={colors.textDisabled}
                         style={[styles.textInput, { color: colors.textTitle }]}
@@ -831,44 +933,17 @@ export function TripInfoBottomSheet({ visible, mode, initialValues, roomName, on
                         />
                       </Pressable>
                     </View>
-                    {focusedDestinationIndex === index && (placesLoading || placePredictions.length > 0) ? (
-                      <View style={[styles.placePanel, { backgroundColor: colors.cardBg, borderColor: colors.divider }, Elevation[scheme][4]]}>
-                        {placesLoading ? (
-                          <Text style={[styles.placeMetaText, { color: colors.textCaption }]}>검색 중</Text>
-                        ) : (
-                          placePredictions.map((place, placeIndex) => (
-                            <Pressable
-                              key={place.place_id}
-                              onPress={() => handleSelectPlace(place)}
-                              style={[
-                                styles.placeOption,
-                                placeIndex < placePredictions.length - 1 && { borderBottomColor: colors.divider, borderBottomWidth: 1 },
-                              ]}
-                            >
-                              {({ pressed }) => (
-                                <>
-                                  <Text style={[styles.placeMainText, { color: colors.textTitle }]} numberOfLines={1}>
-                                    {place.structured_formatting?.main_text ?? place.description}
-                                  </Text>
-                                  {place.structured_formatting?.secondary_text ? (
-                                    <Text style={[styles.placeSubText, { color: colors.textCaption }]} numberOfLines={1}>
-                                      {place.structured_formatting.secondary_text}
-                                    </Text>
-                                  ) : null}
-                                  {pressed && (
-                                    <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.pressOverlay }]} />
-                                  )}
-                                </>
-                              )}
-                            </Pressable>
-                          ))
-                        )}
-                      </View>
+                    {focusedField?.kind === 'destination' && focusedField.index === index && (placesLoading || placePredictions.length > 0) ? (
+                      <PlaceAutocompletePanel
+                        loading={placesLoading}
+                        predictions={placePredictions}
+                        onSelect={handleSelectPlace}
+                      />
                     ) : null}
                     <Pressable
                       onPress={() => {
                         Keyboard.dismiss();
-                        setFocusedDestinationIndex(null);
+                        setFocusedField(null);
                         setPlacePredictions([]);
                         setActiveCalendarIndex(value => value === index ? null : index);
                         setCalendarMonth(destination.startDate ?? new Date());
@@ -927,7 +1002,7 @@ export function TripInfoBottomSheet({ visible, mode, initialValues, roomName, on
               <Pressable
                 onPress={() => {
                   Keyboard.dismiss();
-                  setFocusedDestinationIndex(null);
+                  setFocusedField(null);
                   setPlacePredictions([]);
                   setPeopleExpanded(value => !value);
                   setActiveCalendarIndex(null);
@@ -1126,6 +1201,9 @@ const styles = StyleSheet.create({
   fieldGroup: {
     gap: 10,
     marginBottom: 27,
+  },
+  originFieldGroup: {
+    marginTop: 12,
   },
   budgetGroup: {
     gap: 10,
