@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -12,7 +12,7 @@ import { queryKeys, STALE_TIMES } from '@/constants/queryKeys';
 import { BOTTOM_NAVIGATION } from '@/constants/layout';
 import { Typography } from '@/constants/theme';
 import { getErrorMessage } from '@/utils/getErrorMessage';
-import { formatTripDestinationCities } from '@/utils/tripInfo';
+import { formatTripDestinationCities, itineraryToCalendarEvent } from '@/utils/tripInfo';
 import { addMonths } from '@/utils/dateOnly';
 import { TravelListTabBar } from '@/components/TravelListTabBar';
 import { TravelPlanCard } from '@/components/TravelPlanCard';
@@ -86,8 +86,10 @@ export function PlanListScreen() {
     Toast.show({ type: 'error', text1: getErrorMessage(itinerariesError) });
   }, [itinerariesError]);
 
-  const itineraries = itinerariesData?.itineraries ?? [];
+  const itineraries = useMemo(() => itinerariesData?.itineraries ?? [], [itinerariesData]);
   const isLoading = isLoadingItineraries;
+
+  const events = useMemo(() => itineraries.map(itineraryToCalendarEvent), [itineraries]);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.pageBg }]}>
@@ -146,6 +148,7 @@ export function PlanListScreen() {
             month={calendarMonth}
             onPrevMonth={() => setCalendarMonth((value) => addMonths(value, -1))}
             onNextMonth={() => setCalendarMonth((value) => addMonths(value, 1))}
+            events={events}
           />
         </ScrollView>
       )}

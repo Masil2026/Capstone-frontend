@@ -1,6 +1,7 @@
 import { ItineraryDetail } from '@/api/itineraries';
 import { TripDestination, TripInfo } from '@/components/ui/TripInfoBottomSheet';
-import { formatDateOnly, parseDateOnly } from '@/utils/dateOnly';
+import type { CalendarEvent } from '@/utils/calendarEvents';
+import { addDays, formatDateOnly, parseDateOnly } from '@/utils/dateOnly';
 
 export type TripDestinationRequest = {
   city: string;
@@ -18,6 +19,22 @@ export function formatTripDestinations(destinations: TripDestination[]): TripDes
 
 export function formatTripDestinationCities(destinations: { city: string }[]): string {
   return destinations.map((destination) => destination.city).filter(Boolean).join(', ');
+}
+
+export function itineraryToCalendarEvent(item: {
+  itineraryId: string;
+  startDate: string;
+  totalDays: number;
+  destinations: { city: string }[];
+}): CalendarEvent {
+  const startDate = parseDateOnly(item.startDate);
+
+  return {
+    id: item.itineraryId,
+    startDate,
+    endDate: addDays(startDate, item.totalDays - 1),
+    label: formatTripDestinationCities(item.destinations),
+  };
 }
 
 export function toTripInfoInitialValues(detail: Pick<
