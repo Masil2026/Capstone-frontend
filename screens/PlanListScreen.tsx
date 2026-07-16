@@ -20,7 +20,7 @@ import { ReservationCard } from '@/components/ReservationCard';
 import { ReservationStatusFilter } from '@/components/ReservationStatusFilter';
 import { ReservationTypeTab } from '@/components/ReservationTypeTab';
 
-type Tab = 'itinerary' | 'reservation';
+type Tab = 'itinerary' | 'calendar';
 type ResType = 'all' | 'flight' | 'accommodation';
 type ResStatus = 'all' | 'confirmed' | 'changed' | 'cancelled';
 
@@ -125,7 +125,7 @@ export function PlanListScreen() {
   }, [tab, itinerariesError]);
 
   useEffect(() => {
-    if (tab !== 'reservation' || !reservationsError) return;
+    if (tab !== 'calendar' || !reservationsError) return;
     Toast.show({ type: 'error', text1: getErrorMessage(reservationsError) });
   }, [tab, reservationsError]);
 
