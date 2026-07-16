@@ -135,6 +135,7 @@ export function PlanListDetailScreen({ id }: Props) {
                   location={item.place || undefined}
                   price={price}
                   currency={currency}
+                  imageUrl={item.image_url}
                   showConnector={index + 1 < activeDayPlans.length}
                 />
               );

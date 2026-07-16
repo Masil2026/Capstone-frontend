@@ -143,6 +143,8 @@ type LogDayPlanItem = {
   place: string;
   note: string;
   cost?: DayPlanCost | null;
+  image_url?: string | null;
+  url?: string | null;
   status: string;
 };
 
