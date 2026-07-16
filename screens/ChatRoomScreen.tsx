@@ -408,10 +408,6 @@ export function ChatRoomScreen({ chatId }: Props) {
               });
             }
 
-            if (done.reservation || done.cancel) {
-              queryClient.invalidateQueries({ queryKey: queryKeys.reservations.all });
-            }
-
             if (!focusedRef.current) {
               Toast.show({
                 type: 'success',
