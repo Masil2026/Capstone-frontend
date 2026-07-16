@@ -35,3 +35,7 @@ export function isBetween(date: Date, start: Date, end: Date): boolean {
   const endTime = new Date(end.getFullYear(), end.getMonth(), end.getDate()).getTime();
   return dateTime > startTime && dateTime < endTime;
 }
+
+export function addMonths(date: Date, delta: number): Date {
+  return new Date(date.getFullYear(), date.getMonth() + delta, 1);
+}

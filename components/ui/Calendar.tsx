@@ -9,11 +9,11 @@ import IcChevronDown from '@/assets/icons/ic_chevron_down.svg';
 export type { CalendarEvent };
 
 export type CalendarProps = {
-  startDate: Date | null;
-  endDate: Date | null;
+  startDate?: Date | null;
+  endDate?: Date | null;
   month: Date;
-  minSelectableDate: Date;
-  onDayPress: (day: Date) => void;
+  minSelectableDate?: Date | null;
+  onDayPress?: (day: Date) => void;
   onPrevMonth: () => void;
   onNextMonth: () => void;
   events?: CalendarEvent[];
@@ -22,13 +22,14 @@ export type CalendarProps = {
 const BAR_HEIGHT = 18;
 const LANE_GAP = 4;
 const LANE_HEIGHT = BAR_HEIGHT + LANE_GAP;
+const NOOP = () => {};
 
 export function Calendar({
-  startDate,
-  endDate,
+  startDate = null,
+  endDate = null,
   month,
-  minSelectableDate,
-  onDayPress,
+  minSelectableDate = null,
+  onDayPress = NOOP,
   onPrevMonth,
   onNextMonth,
   events = [],
@@ -107,7 +108,7 @@ export function Calendar({
                 const isEnd = !!endDate && isSameDay(day, endDate);
                 const inRange = !!startDate && !!endDate && isBetween(day, startDate, endDate);
                 const isSelected = isStart || isEnd;
-                const isDisabled = compareDateOnly(day, minSelectableDate) < 0 && !isSelected;
+                const isDisabled = minSelectableDate != null && compareDateOnly(day, minSelectableDate) < 0 && !isSelected;
                 const isFirstRangeDay =
                   inRange &&
                   !!startDate &&

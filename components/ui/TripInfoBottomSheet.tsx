@@ -15,7 +15,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BorderRadius, Elevation, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
-import { compareDateOnly, getTodayDateOnly, isSameDay } from '@/utils/dateOnly';
+import { addMonths, compareDateOnly, getTodayDateOnly, isSameDay } from '@/utils/dateOnly';
 import { Calendar } from './Calendar';
 import IcChevronDown from '@/assets/icons/ic_chevron_down.svg';
 import IcDelete from '@/assets/icons/ic_delete.svg';
@@ -814,8 +814,8 @@ export function TripInfoBottomSheet({ visible, mode, initialValues, roomName, on
                         month={calendarMonth}
                         minSelectableDate={minSelectableDate}
                         onDayPress={(day) => handleDayPress(index, day)}
-                        onPrevMonth={() => setCalendarMonth(value => new Date(value.getFullYear(), value.getMonth() - 1, 1))}
-                        onNextMonth={() => setCalendarMonth(value => new Date(value.getFullYear(), value.getMonth() + 1, 1))}
+                        onPrevMonth={() => setCalendarMonth(value => addMonths(value, -1))}
+                        onNextMonth={() => setCalendarMonth(value => addMonths(value, 1))}
                       />
                     )}
                   </View>
