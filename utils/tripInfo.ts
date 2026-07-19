@@ -21,6 +21,39 @@ export function formatTripDestinationCities(destinations: { city: string }[]): s
   return destinations.map((destination) => destination.city).filter(Boolean).join(', ');
 }
 
+const PROVINCE_LEVEL_SUFFIXES = ['특별자치도', '특별자치시', '광역시', '특별시'];
+const ADMIN_SUFFIXES = ['특별자치도', '특별자치시', '광역시', '특별시', '도', '시', '군', '구'];
+
+function isProvinceLevelToken(token: string): boolean {
+  return PROVINCE_LEVEL_SUFFIXES.some((suffix) => token.endsWith(suffix))
+    || (token.endsWith('도') && !token.endsWith('자치도'));
+}
+
+function stripAdminSuffix(token: string): string {
+  const suffix = ADMIN_SUFFIXES.find((candidate) => token.length > candidate.length && token.endsWith(candidate));
+  return suffix ? token.slice(0, -suffix.length) : token;
+}
+
+/** "대한민국 강원특별자치도 강릉시" -> "강릉" 처럼 국가/광역 단위를 뺀 짧은 지명만 남긴다. */
+export function extractShortCityName(rawCity: string): string {
+  const withoutCountry = rawCity.replace(/대한민국/g, '');
+  const tokens = withoutCountry.split(/[\s,]+/).map((token) => token.trim()).filter(Boolean);
+  if (tokens.length === 0) return rawCity.trim();
+
+  const specificTokens = tokens.length > 1 ? tokens.filter((token) => !isProvinceLevelToken(token)) : tokens;
+  const candidates = specificTokens.length > 0 ? specificTokens : tokens;
+
+  return stripAdminSuffix(candidates[candidates.length - 1]);
+}
+
+function formatCalendarDestinationLabel(destinations: { city: string }[]): string {
+  return destinations
+    .map((destination) => destination.city)
+    .filter(Boolean)
+    .map(extractShortCityName)
+    .join(', ');
+}
+
 export function itineraryToCalendarEvent(item: {
   itineraryId: string;
   startDate: string;
@@ -33,7 +66,7 @@ export function itineraryToCalendarEvent(item: {
     id: item.itineraryId,
     startDate,
     endDate: addDays(startDate, item.totalDays - 1),
-    label: formatTripDestinationCities(item.destinations),
+    label: formatCalendarDestinationLabel(item.destinations),
   };
 }
 

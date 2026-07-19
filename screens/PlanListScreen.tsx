@@ -138,19 +138,14 @@ export function PlanListScreen() {
           )}
         </ScrollView>
       ) : (
-        <ScrollView
-          contentContainerStyle={[
-            styles.calendarSection,
-            { paddingBottom: BOTTOM_NAVIGATION + insets.bottom + 16 },
-          ]}
-        >
+        <View style={[styles.calendarSection, { paddingBottom: BOTTOM_NAVIGATION + insets.bottom + 16 }]}>
           <Calendar
             month={calendarMonth}
             onPrevMonth={() => setCalendarMonth((value) => addMonths(value, -1))}
             onNextMonth={() => setCalendarMonth((value) => addMonths(value, 1))}
             events={events}
           />
-        </ScrollView>
+        </View>
       )}
     </View>
   );
