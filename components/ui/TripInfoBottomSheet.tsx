@@ -15,6 +15,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BorderRadius, Elevation, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { addMonths, compareDateOnly, getTodayDateOnly, isSameDay } from '@/utils/dateOnly';
+import { Calendar } from './Calendar';
 import IcChevronDown from '@/assets/icons/ic_chevron_down.svg';
 import IcDelete from '@/assets/icons/ic_delete.svg';
 import IcPlan from '@/assets/icons/ic_plan.svg';
@@ -77,16 +79,6 @@ type Props = {
   onClose: () => void;
 };
 
-type CalendarProps = {
-  startDate: Date | null;
-  endDate: Date | null;
-  month: Date;
-  minSelectableDate: Date;
-  onDayPress: (day: Date) => void;
-  onPrevMonth: () => void;
-  onNextMonth: () => void;
-};
-
 type StepperRowProps = {
   label: string;
   value: number;
@@ -113,32 +105,6 @@ const GOOGLE_MAPS_API_KEY = (
 
 function formatDate(date: Date): string {
   return `${date.getMonth() + 1}월 ${date.getDate()}일`;
-}
-
-function isSameDay(a: Date, b: Date): boolean {
-  return (
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate()
-  );
-}
-
-function compareDateOnly(a: Date, b: Date): number {
-  const aTime = new Date(a.getFullYear(), a.getMonth(), a.getDate()).getTime();
-  const bTime = new Date(b.getFullYear(), b.getMonth(), b.getDate()).getTime();
-  return aTime - bTime;
-}
-
-function getTodayDateOnly(): Date {
-  const today = new Date();
-  return new Date(today.getFullYear(), today.getMonth(), today.getDate());
-}
-
-function isBetween(date: Date, start: Date, end: Date): boolean {
-  const dateTime = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
-  const startTime = new Date(start.getFullYear(), start.getMonth(), start.getDate()).getTime();
-  const endTime = new Date(end.getFullYear(), end.getMonth(), end.getDate()).getTime();
-  return dateTime > startTime && dateTime < endTime;
 }
 
 function normalizeAges(children: number, ages?: AgeOption[]): (AgeOption | '')[] {
@@ -191,129 +157,6 @@ function areSameDestinations(a: TripDestinationDraft[], b: TripDestinationDraft[
     isSameDateValue(value.startDate, normalizedB[index].startDate) &&
     isSameDateValue(value.endDate, normalizedB[index].endDate)
   ));
-}
-
-function Calendar({ startDate, endDate, month, minSelectableDate, onDayPress, onPrevMonth, onNextMonth }: CalendarProps) {
-  const { colors, scheme } = useTheme();
-  const year = month.getFullYear();
-  const mon = month.getMonth();
-  const firstDay = new Date(year, mon, 1).getDay();
-  const daysInMonth = new Date(year, mon + 1, 0).getDate();
-  const cells: (Date | null)[] = [
-    ...Array(firstDay).fill(null),
-    ...Array.from({ length: daysInMonth }, (_, index) => new Date(year, mon, index + 1)),
-  ];
-  const weeks: (Date | null)[][] = [];
-
-  for (let i = 0; i < cells.length; i += 7) {
-    const week = cells.slice(i, i + 7);
-    while (week.length < 7) week.push(null);
-    weeks.push(week);
-  }
-
-  return (
-    <View style={[styles.calendarPanel, { backgroundColor: colors.cardBg, borderColor: colors.divider }, Elevation[scheme][4]]}>
-      <View style={styles.calendarHeader}>
-        <Pressable onPress={onPrevMonth} style={styles.calendarNavButton}>
-          {({ pressed }) => (
-            <>
-              <View style={styles.chevronLeft}>
-                <IcChevronDown width={18} height={18} color={colors.textCaption} />
-              </View>
-              {pressed && (
-                <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.pressOverlay, borderRadius: BorderRadius.full }]} />
-              )}
-            </>
-          )}
-        </Pressable>
-        <Text style={[styles.calendarMonth, { color: colors.textTitle }]}>
-          {year}년 {mon + 1}월
-        </Text>
-        <Pressable onPress={onNextMonth} style={styles.calendarNavButton}>
-          {({ pressed }) => (
-            <>
-              <View style={styles.chevronRight}>
-                <IcChevronDown width={18} height={18} color={colors.textCaption} />
-              </View>
-              {pressed && (
-                <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.pressOverlay, borderRadius: BorderRadius.full }]} />
-              )}
-            </>
-          )}
-        </Pressable>
-      </View>
-
-      <View style={styles.calendarRow}>
-        {['일', '월', '화', '수', '목', '금', '토'].map(day => (
-          <Text key={day} style={[styles.calendarDayHeader, { color: colors.textCaption }]}>
-            {day}
-          </Text>
-        ))}
-      </View>
-
-      {weeks.map((week, weekIndex) => (
-        <View key={weekIndex} style={styles.calendarRow}>
-          {week.map((day, dayIndex) => {
-            if (!day) return <View key={dayIndex} style={styles.calendarCell} />;
-
-            const isStart = !!startDate && isSameDay(day, startDate);
-            const isEnd = !!endDate && isSameDay(day, endDate);
-            const inRange = !!startDate && !!endDate && isBetween(day, startDate, endDate);
-            const isSelected = isStart || isEnd;
-            const isDisabled = compareDateOnly(day, minSelectableDate) < 0 && !isSelected;
-            const isFirstRangeDay =
-              inRange &&
-              !!startDate &&
-              isSameDay(day, new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate() + 1));
-            const isLastRangeDay =
-              inRange &&
-              !!endDate &&
-              isSameDay(day, new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate() - 1));
-
-            return (
-              <Pressable
-                key={dayIndex}
-                disabled={isDisabled}
-                onPress={() => onDayPress(day)}
-                style={styles.calendarCell}
-              >
-                {({ pressed }) => (
-                  <>
-                    {inRange && (
-                      <View
-                        style={[
-                          styles.calendarRangeBackground,
-                          { backgroundColor: colors.primaryTint },
-                          isFirstRangeDay && styles.calendarRangeStart,
-                          isLastRangeDay && styles.calendarRangeEnd,
-                        ]}
-                      />
-                    )}
-                    <View
-                      style={[
-                        styles.calendarDay,
-                        isSelected && { backgroundColor: colors.primary },
-                        pressed && !isSelected && !isDisabled && { backgroundColor: colors.pressOverlay },
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.calendarDayText,
-                          { color: isSelected ? colors.pageBg : isDisabled ? colors.textDisabled : colors.textTitle },
-                        ]}
-                      >
-                        {day.getDate()}
-                      </Text>
-                    </View>
-                  </>
-                )}
-              </Pressable>
-            );
-          })}
-        </View>
-      ))}
-    </View>
-  );
 }
 
 function StepperRow({ label, value, min = 0, onDecrement, onIncrement }: StepperRowProps) {
@@ -977,8 +820,8 @@ export function TripInfoBottomSheet({ visible, mode, initialValues, roomName, on
                         month={calendarMonth}
                         minSelectableDate={minSelectableDate}
                         onDayPress={(day) => handleDayPress(index, day)}
-                        onPrevMonth={() => setCalendarMonth(value => new Date(value.getFullYear(), value.getMonth() - 1, 1))}
-                        onNextMonth={() => setCalendarMonth(value => new Date(value.getFullYear(), value.getMonth() + 1, 1))}
+                        onPrevMonth={() => setCalendarMonth(value => addMonths(value, -1))}
+                        onNextMonth={() => setCalendarMonth(value => addMonths(value, 1))}
                       />
                     )}
                   </View>
@@ -1301,78 +1144,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
-  calendarPanel: {
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    marginTop: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 14,
-  },
-  calendarHeader: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  calendarNavButton: {
-    alignItems: 'center',
-    borderRadius: BorderRadius.full,
-    height: 36,
-    justifyContent: 'center',
-    width: 36,
-  },
-  chevronLeft: {
-    transform: [{ rotate: '90deg' }],
-  },
-  chevronRight: {
-    transform: [{ rotate: '-90deg' }],
-  },
   chevronOpen: {
     transform: [{ rotate: '180deg' }],
-  },
-  calendarMonth: {
-    ...Typography['heading-sm'],
-  },
-  calendarRow: {
-    flexDirection: 'row',
-  },
-  calendarDayHeader: {
-    ...Typography['caption'],
-    flex: 1,
-    paddingVertical: 6,
-    textAlign: 'center',
-  },
-  calendarCell: {
-    alignItems: 'center',
-    flex: 1,
-    paddingVertical: 2,
-    position: 'relative',
-  },
-  calendarRangeBackground: {
-    bottom: 2,
-    left: -1,
-    position: 'absolute',
-    right: -1,
-    top: 2,
-  },
-  calendarRangeStart: {
-    borderBottomLeftRadius: BorderRadius.full,
-    borderTopLeftRadius: BorderRadius.full,
-  },
-  calendarRangeEnd: {
-    borderBottomRightRadius: BorderRadius.full,
-    borderTopRightRadius: BorderRadius.full,
-  },
-  calendarDay: {
-    alignItems: 'center',
-    borderRadius: BorderRadius.full,
-    height: 34,
-    justifyContent: 'center',
-    overflow: 'hidden',
-    width: 34,
-  },
-  calendarDayText: {
-    ...Typography['body-md'],
   },
   peoplePanel: {
     borderRadius: BorderRadius.lg,

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -8,21 +8,17 @@ import { useApi } from '@/hooks/useApi';
 import { useTheme } from '@/hooks/useTheme';
 import { getItineraries, updateItineraryStatus } from '@/api/itineraries';
 import type { ItineraryDetail } from '@/api/itineraries';
-import { getReservations } from '@/api/reservations';
 import { queryKeys, STALE_TIMES } from '@/constants/queryKeys';
 import { BOTTOM_NAVIGATION } from '@/constants/layout';
 import { Typography } from '@/constants/theme';
 import { getErrorMessage } from '@/utils/getErrorMessage';
-import { formatTripDestinationCities } from '@/utils/tripInfo';
+import { formatTripDestinationCities, itineraryToCalendarEvent } from '@/utils/tripInfo';
+import { addMonths } from '@/utils/dateOnly';
 import { TravelListTabBar } from '@/components/TravelListTabBar';
 import { TravelPlanCard } from '@/components/TravelPlanCard';
-import { ReservationCard } from '@/components/ReservationCard';
-import { ReservationStatusFilter } from '@/components/ReservationStatusFilter';
-import { ReservationTypeTab } from '@/components/ReservationTypeTab';
+import { Calendar } from '@/components/ui/Calendar';
 
-type Tab = 'itinerary' | 'reservation';
-type ResType = 'all' | 'flight' | 'accommodation';
-type ResStatus = 'all' | 'confirmed' | 'changed' | 'cancelled';
+type Tab = 'itinerary' | 'calendar';
 
 function formatDate(dateStr: string) {
   return dateStr.replace(/-/g, '.');
@@ -33,29 +29,6 @@ function formatDuration(totalDays: number) {
   return `${totalDays - 1}박 ${totalDays}일`;
 }
 
-function formatPrice(price: number | null, currency: string | null) {
-  if (price == null) return '-';
-  const symbol = currency === 'KRW' ? '₩' : (currency ?? '');
-  return `${symbol}${price.toLocaleString()}`;
-}
-
-function formatTime(datetime: string) {
-  const d = new Date(datetime);
-  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-}
-
-function formatDateShort(datetime: string) {
-  const d = new Date(datetime);
-  return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
-}
-
-function calcFlightDuration(departure: string, arrival: string) {
-  const diff = Math.round((new Date(arrival).getTime() - new Date(departure).getTime()) / 60000);
-  const h = Math.floor(diff / 60);
-  const m = diff % 60;
-  return m > 0 ? `${h}시간 ${m}분` : `${h}시간`;
-}
-
 export function PlanListScreen() {
   const { colors } = useTheme();
   const { authRequest } = useApi();
@@ -64,8 +37,7 @@ export function PlanListScreen() {
   const queryClient = useQueryClient();
 
   const [tab, setTab] = useState<Tab>('itinerary');
-  const [resType, setResType] = useState<ResType>('all');
-  const [resStatus, setResStatus] = useState<ResStatus>('all');
+  const [calendarMonth, setCalendarMonth] = useState(new Date());
 
   const {
     data: itinerariesData,
@@ -75,16 +47,6 @@ export function PlanListScreen() {
     queryKey: queryKeys.itineraries.all,
     queryFn: () => authRequest(getItineraries),
     staleTime: STALE_TIMES.itineraries.all,
-  });
-
-  const {
-    data: reservationsData,
-    isLoading: isLoadingReservations,
-    error: reservationsError,
-  } = useQuery({
-    queryKey: queryKeys.reservations.all,
-    queryFn: () => authRequest(getReservations),
-    staleTime: STALE_TIMES.reservations.all,
   });
 
   type ItinerariesData = NonNullable<typeof itinerariesData>;
@@ -120,24 +82,14 @@ export function PlanListScreen() {
   });
 
   useEffect(() => {
-    if (tab !== 'itinerary' || !itinerariesError) return;
+    if (!itinerariesError) return;
     Toast.show({ type: 'error', text1: getErrorMessage(itinerariesError) });
-  }, [tab, itinerariesError]);
+  }, [itinerariesError]);
 
-  useEffect(() => {
-    if (tab !== 'reservation' || !reservationsError) return;
-    Toast.show({ type: 'error', text1: getErrorMessage(reservationsError) });
-  }, [tab, reservationsError]);
+  const itineraries = useMemo(() => itinerariesData?.itineraries ?? [], [itinerariesData]);
+  const isLoading = isLoadingItineraries;
 
-  const itineraries = itinerariesData?.itineraries ?? [];
-  const allReservations = (reservationsData?.reservations ?? []).filter(
-    (r) => r.type === 'flight' || r.type === 'accommodation',
-  );
-  const filteredReservations = allReservations
-    .filter((r) => resType === 'all' || r.type === resType)
-    .filter((r) => resStatus === 'all' || r.status === resStatus);
-
-  const isLoading = tab === 'itinerary' ? isLoadingItineraries : isLoadingReservations;
+  const events = useMemo(() => itineraries.map(itineraryToCalendarEvent), [itineraries]);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.pageBg }]}>
@@ -186,69 +138,19 @@ export function PlanListScreen() {
           )}
         </ScrollView>
       ) : (
-        <View style={styles.reservationSection}>
-          <ReservationTypeTab selected={resType} onSelect={setResType} />
-          <ReservationStatusFilter selected={resStatus} onSelect={setResStatus} />
-          <ScrollView
-            contentContainerStyle={[
-              styles.list,
-              { paddingBottom: BOTTOM_NAVIGATION + insets.bottom + 16 },
-            ]}
-          >
-            {filteredReservations.length === 0 ? (
-              <View style={styles.emptyContainer}>
-                <Text style={[styles.emptyTitle, { color: colors.textTitle }]}>
-                  예약 내역이 없습니다
-                </Text>
-                <Text style={[styles.emptyText, { color: colors.textCaption }]}>
-                  선택한 조건에 해당하는 예약이 없습니다.
-                </Text>
-              </View>
-            ) : (
-              filteredReservations.map((r) => {
-                const common = {
-                  price: formatPrice(r.totalPrice, r.currency),
-                  bookedBy: r.bookedBy,
-                  reservationNumber: r.externalRefId ?? r.reservationId,
-                  reservationDate: formatDateShort(r.reservedAt),
-                  status: r.status,
-                };
-
-                if (r.type === 'flight') {
-                  const d = r.detail;
-                  return (
-                    <ReservationCard
-                      key={r.reservationId}
-                      type="flight"
-                      departureCode={d.departure}
-                      arrivalCode={d.arrival}
-                      duration={calcFlightDuration(d.departing_at, d.arriving_at)}
-                      departureTime={formatTime(d.departing_at)}
-                      arrivalTime={formatTime(d.arriving_at)}
-                      date={formatDateShort(d.departing_at)}
-                      airline={d.airline}
-                      {...common}
-                    />
-                  );
-                }
-
-                const d = r.detail;
-                return (
-                  <ReservationCard
-                    key={r.reservationId}
-                    type="lodging"
-                    hotelName={d.name}
-                    checkInDate={d.check_in}
-                    checkOutDate={d.check_out}
-                    roomType={`${d.rooms}실`}
-                    guests={d.guests}
-                    {...common}
-                  />
-                );
-              })
-            )}
-          </ScrollView>
-        </View>
+        <ScrollView
+          contentContainerStyle={[
+            styles.calendarSection,
+            { paddingBottom: BOTTOM_NAVIGATION + insets.bottom + 16 },
+          ]}
+        >
+          <Calendar
+            month={calendarMonth}
+            onPrevMonth={() => setCalendarMonth((value) => addMonths(value, -1))}
+            onNextMonth={() => setCalendarMonth((value) => addMonths(value, 1))}
+            events={events}
+          />
+        </ScrollView>
       )}
     </View>
   );
@@ -259,7 +161,7 @@ const styles = StyleSheet.create({
   loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   safeAreaTop: { width: '100%' },
   list: { padding: 16, gap: 12 },
-  reservationSection: { flex: 1 },
+  calendarSection: { padding: 16 },
   emptyContainer: {
     alignItems: 'center',
     justifyContent: 'center',

@@ -4,7 +4,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { Typography, BorderRadius } from '@/constants/theme';
 import IcPlanList from '@/assets/icons/ic_plan_list.svg';
 
-type Tab = 'itinerary' | 'reservation';
+type Tab = 'itinerary' | 'calendar';
 
 type Props = {
   tab: Tab;
@@ -13,7 +13,7 @@ type Props = {
 
 const TABS: { key: Tab; label: string }[] = [
   { key: 'itinerary', label: '여행 일정' },
-  { key: 'reservation', label: '예약' },
+  { key: 'calendar', label: '달력' },
 ];
 
 export function TravelListTabBar({ tab, onTabChange }: Props) {

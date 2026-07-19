@@ -272,6 +272,7 @@ export function PlanScreen() {
               endTime={currentItemTime.endTime}
               location={currentItem.place}
               label={currentItemLabel}
+              imageUrl={currentItem.image_url}
             />
           )}
           {selectedItems.length === 0 ? (

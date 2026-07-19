@@ -1,5 +1,6 @@
 import React from 'react';
 import { StyleSheet, View, Text, Pressable, Linking } from 'react-native';
+import { Image } from 'expo-image';
 import { useTheme } from '@/hooks/useTheme';
 import { Typography, BorderRadius, Elevation } from '@/constants/theme';
 import IcNavigation from '@/assets/icons/ic_navigation.svg';
@@ -15,9 +16,10 @@ type Props = {
   endTime: string;
   location: string;
   label?: string;
+  imageUrl?: string | null;
 };
 
-export function CurrentScheduleCard({ title, startTime, endTime, location, label = '현재 일정' }: Props) {
+export function CurrentScheduleCard({ title, startTime, endTime, location, label = '현재 일정', imageUrl }: Props) {
   const { colors, scheme } = useTheme();
 
   const surfaceColor = scheme === 'dark' ? colors.textTitle : colors.cardBg;
@@ -44,6 +46,15 @@ export function CurrentScheduleCard({ title, startTime, endTime, location, label
         </View>
         <Text style={[styles.labelText, { color: surfaceColor }]}>{label}</Text>
       </View>
+
+      {imageUrl ? (
+        <Image
+          source={{ uri: imageUrl }}
+          style={styles.image}
+          contentFit="cover"
+          transition={150}
+        />
+      ) : null}
 
       <Text style={[styles.title, { color: surfaceColor }]}>
         {title}
@@ -102,6 +113,11 @@ const styles = StyleSheet.create({
     height: ICON_TEXT_LINE_HEIGHT,
     justifyContent: 'center',
     marginTop: ICON_TOP_OFFSET,
+  },
+  image: {
+    width: '100%',
+    height: 140,
+    borderRadius: BorderRadius.md,
   },
   labelText: {
     ...Typography['body-md'],

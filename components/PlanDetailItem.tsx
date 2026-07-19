@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image } from 'expo-image';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -55,6 +56,7 @@ type Props = {
   totalPrice?: number;
   currency?: string;
   bookingUrl?: string;
+  imageUrl?: string | null;
   showConnector?: boolean;
   defaultOpen?: boolean;
 };
@@ -151,6 +153,7 @@ export function PlanDetailItem({
   totalPrice,
   currency,
   bookingUrl,
+  imageUrl,
   showConnector = true,
   defaultOpen = false,
 }: Props) {
@@ -213,6 +216,14 @@ export function PlanDetailItem({
               <>
                 <View style={[styles.divider, { backgroundColor: colors.divider }]} />
                 <View style={styles.expanded}>
+                  {imageUrl ? (
+                    <Image
+                      source={{ uri: imageUrl }}
+                      style={styles.image}
+                      contentFit="cover"
+                      transition={150}
+                    />
+                  ) : null}
                   {reservationSummary ? (
                     <Text style={[styles.detailTitle, { color: colors.textTitle }]}>
                       {reservationSummary}
@@ -337,6 +348,11 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
+  },
+  image: {
+    width: '100%',
+    height: 140,
+    borderRadius: BorderRadius.md,
   },
   detailTitle: {
     ...Typography['heading-md'],
