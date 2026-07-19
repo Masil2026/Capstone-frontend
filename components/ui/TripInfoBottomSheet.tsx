@@ -23,6 +23,7 @@ import IcSearch from '@/assets/icons/ic_search.svg';
 type Mode = 'create' | 'edit';
 
 const AGE_OPTIONS = [
+  '만 0세',
   '만 1세',
   '만 2세',
   '만 3세',
@@ -35,6 +36,11 @@ const AGE_OPTIONS = [
   '만 10세',
   '만 11세',
   '만 12세',
+  '만 13세',
+  '만 14세',
+  '만 15세',
+  '만 16세',
+  '만 17세',
 ] as const;
 const MAX_PEOPLE_COUNT = 15;
 const MAX_DESTINATION_COUNT = 3;
@@ -1062,7 +1068,11 @@ export function TripInfoBottomSheet({ visible, mode, initialValues, roomName, on
                         </View>
                       </Pressable>
                       {activeAgeDropdown === index && (
-                        <View style={[styles.ageDropdown, { backgroundColor: colors.cardBg, borderColor: colors.divider }]}>
+                        <ScrollView
+                          style={[styles.ageDropdown, { backgroundColor: colors.cardBg, borderColor: colors.divider }]}
+                          nestedScrollEnabled
+                          showsVerticalScrollIndicator={false}
+                        >
                           {AGE_OPTIONS.map(option => (
                             <Pressable
                               key={option}
@@ -1090,7 +1100,7 @@ export function TripInfoBottomSheet({ visible, mode, initialValues, roomName, on
                               )}
                             </Pressable>
                           ))}
-                        </View>
+                        </ScrollView>
                       )}
                     </View>
                   ))}
@@ -1455,6 +1465,7 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.md,
     borderWidth: 1,
     bottom: 53,
+    maxHeight: 161,
     overflow: 'hidden',
     position: 'absolute',
     right: 32,

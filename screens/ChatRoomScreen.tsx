@@ -671,7 +671,8 @@ const styles = StyleSheet.create({
   messageListContent: { paddingTop: 16, paddingBottom: 8 },
   aiNotice: {
     ...Typography['caption'],
-    paddingHorizontal: 16,
+    alignSelf: 'stretch',
+    paddingHorizontal: 32,
     paddingTop: 0,
     paddingBottom: 4,
     textAlign: 'center',
