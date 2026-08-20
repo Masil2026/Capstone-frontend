@@ -2,7 +2,7 @@
   "expo": {
     "name": "capstone-frontend",
     "slug": "capstone-frontend",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "capstonefrontend",
@@ -26,7 +26,8 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.yeoul.masil"
     },
     "web": {
       "output": "static",
@@ -45,11 +46,20 @@
             "backgroundColor": "#000000"
           }
         }
-      ]
+      ],
+      "expo-secure-store",
+      "expo-font",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "64ea1b5b-95b9-47be-8a27-558c43f57be1"
+      }
     }
   }
 }
