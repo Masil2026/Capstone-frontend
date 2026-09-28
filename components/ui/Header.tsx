@@ -23,7 +23,7 @@ export function Header() {
       ]}
     >
       <View style={styles.content}>
-        <Image source={require('@/assets/images/img_logo_main.png')} style={styles.logo} />
+        <Image source={require('@/assets/images/img_rogo_main_cleanVersion.png')} style={styles.logo} />
         <Text style={[styles.title, { color: colors.textTitle }]}>마실</Text>
       </View>
     </View>

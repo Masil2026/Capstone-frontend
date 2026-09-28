@@ -7,7 +7,7 @@ export function SplashScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.primary }]}>
       <Image
-        source={require('@/assets/images/img_logo_main.png')}
+        source={require('@/assets/images/img_rogo_main_cleanVersion.png')}
         style={styles.logo}
         resizeMode="contain"
       />
