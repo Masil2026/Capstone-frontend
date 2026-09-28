@@ -1,12 +1,11 @@
 import React from 'react';
-import { StyleSheet, View, Text, Pressable, ActivityIndicator } from 'react-native';
+import { StyleSheet, View, Text, Pressable, ActivityIndicator, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useOAuth } from '@clerk/clerk-expo';
 import * as WebBrowser from 'expo-web-browser';
 import Toast from 'react-native-toast-message';
 import { useTheme } from '@/hooks/useTheme';
 import { Elevation, Typography, BorderRadius } from '@/constants/theme';
-import LogoMain from '@/assets/images/img_logo_main.svg';
 import GoogleSignInLight from '@/assets/brand/google_sign_in_light.svg';
 import GoogleSignInDark from '@/assets/brand/google_sign_in_dark.svg';
 
@@ -38,7 +37,11 @@ export function LoginScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.pageBg }]}>
       <View style={styles.content}>
         <View style={styles.logoWrapper}>
-          <LogoMain width={185} height={120} style={styles.logo} />
+          <Image
+            source={require('@/assets/images/img_rogo_main_cleanVersion.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
         </View>
 
         <View style={styles.textArea}>
@@ -101,6 +104,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   logo: {
+    width: 185,
+    height: 120,
     transform: [{ rotate: '-32deg' }],
   },
   textArea: {
